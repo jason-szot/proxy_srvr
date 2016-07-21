@@ -56,7 +56,10 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
         url = line_split[1]
         print("url: %s" % (url) )
 
-        //http_pos = url.find("://")  # Find Position of ://
+
+        ###################     this is where its messing up at, after this comment ####################
+        ###################     Parse TCP packet to scrape url and port for opening a socket    ########
+        http_pos = url.find("://")  # Find Position of ://
         print("http_pos = %d" % (http_pos))
         if http_pos == -1:
             temp = url
