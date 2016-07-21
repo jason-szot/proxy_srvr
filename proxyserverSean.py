@@ -17,7 +17,7 @@ while 1:
   tcpCliSock, addr = tcpSerSock.accept()
   print 'Received a connection from:', addr
   # Fill in start
-  message = tcpSerSock.recv(4096)
+  message = tcpCliSock.recv(4096)
   # Fill in end
   print message
   # Extract the filename from the given message
