@@ -46,24 +46,27 @@ def start():
 
 def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
     try:
-        print("data %s" % (data) )
+        print("data %s " % (data) )
         data_parsed = data.splitlines()
-        print("data_parsed %s" % (data_parsed))
+        print("data_parsed %s " % (data_parsed))
         first_line = data_parsed[0]
-        print("first_line %s" % (first_line))
+        print("first_line %s " % (first_line))
         line_split = first_line.split()
-        print("line_split %s" % (line_split))
+        print("line_split %s " % (line_split))
         url = line_split[1]
-        print("url: %s" % (url) )
+        print("url: %s " % (url) )
 
 
         ###################     this is where its messing up at, after this comment ####################
         ###################     Parse TCP packet to scrape url and port for opening a socket    ########
+        # webserver is the striped url
+        # port is the port number
         http_pos = url.find("://")  # Find Position of ://
-        print("http_pos = %d" % (http_pos))
         if http_pos == -1:
             temp = url
+            print("http_pos = %d" % (http_pos))
         else:
+            print("http_pos = %d" % (http_pos))
 
             temp = url[(http_pos+3):]   # get the rest of the url
 
