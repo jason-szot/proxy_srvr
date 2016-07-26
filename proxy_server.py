@@ -61,47 +61,31 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
         else:
             port = url_2[1]
         port = 80
-        ######################  check if it is in cache ##########################
-        filetouse = "/" + webserver
+
         try:
-            f = open(filetouse[1:], "r")
-            cache_data = f.readlines()
-            ##  send cached page to client
-            for i in range(0, len(cache_data)):
-                conn.send(cache_data[i])
-                conn.close()
-        except IOError:
-            #####################   cache not found ##################################
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((webserver, port))
-                s.send(data)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((webserver, port))
+            s.send(data)
 
-                while 1:
-                    temp = s.recv(buffer_size)
+            while 1:
+                temp = s.recv(buffer_size)
 
-                    ## add to cache files
-                    filetouse = "/" + webserver
-                    f = open(filetouse[1:], "w")
-                    f.write(temp)
-
-
-                    ## send to client
-                    if (len(temp) > 0):
-                        conn.send(temp)
-                    else:
-                        break
+                if (len(temp) > 0):
+                    conn.send(temp)
+                else:
+                    break
+            s.close()
+            conn.close()
+        except socket.error:
+            if s:
                 s.close()
+            if conn:
                 conn.close()
-            except socket.error:
-                if s:
-                    s.close()
-                if conn:
-                    conn.close()
-                print("Peer Reset")
-                exit(1)
+            print("Peer Reset")
+            exit(1)
        # proxy_srvr(webserver, port, conn, addr, data)
     except Exception:
         exit(1)
 
-start()
+
+start()                            
