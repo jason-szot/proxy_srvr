@@ -10,7 +10,7 @@ except KeyboardInterrupt:  # to handle ctrl-c request to exit
     sys.exit()
 
 max_conn = 5  # max connection queues to hold
-buffer_size = 10240  # max socket buffer size
+buffer_size = 4096  # max socket buffer size
 
 
 def start():
@@ -19,8 +19,8 @@ def start():
         s.bind(('', listening_port))  # bind socket for listening
         s.listen(max_conn)
         print("[*] Initializing Sockets ... Done")
-        print("[*] Sockets binded Successfully ...")
-        print("[*] Server Started Successfully [ %d ]\n" % (listening_port))
+        print("[*] Sockets binding Successfully ...")
+        print("[*] Server Started Successfully [ %d ]\n" % listening_port)
     except Exception:
 
         print("[*] Unable to Initialize Socket")
@@ -30,7 +30,6 @@ def start():
         try:
             conn, addr = s.accept()  # Accept connection from client
             data = conn.recv(buffer_size)  # Receive client data
-            print("Received: %s" % (data) )
             t = threading.Thread(target=conn_string, args=(conn, data, addr))
             t.daemon = True
             t._daemonic = True
@@ -46,75 +45,47 @@ def start():
 
 def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
     try:
-        print("data %s" % (data) )
         data_parsed = data.splitlines()
-        print("data_parsed %s" % (data_parsed))
         first_line = data_parsed[0]
-        print("first_line %s" % (first_line))
         line_split = first_line.split()
-        print("line_split %s" % (line_split))
         url = line_split[1]
-        print("url: %s" % (url) )
 
-
-        ###################     this is where its messing up at, after this comment ####################
         ###################     Parse TCP packet to scrape url and port for opening a socket    ########
-        http_pos = url.find("://")  # Find Position of ://
-        print("http_pos = %d" % (http_pos))
-        if http_pos == -1:
-            temp = url
-        else:
-
-            temp = url[(http_pos+3):]   # get the rest of the url
-
-        port_pos = temp.find(":")   # find the pos of the port if any
-
-        webserver_pos = temp.find("/")  # find the end of the web server
-        if webserver_pos == -1:
-            webserver_pos = len(temp)
-        webserver = ""
-        port = -1
-        if (port_pos==-1 or webserver_pos < port_pos):
+        url_parse_1 = url.split(b'://')  # get rid of leading part
+        url_1 = url_parse_1[1]             # assign webserver section
+        url_parse_2 = url_1.split(b'/')     # split off the trailing /
+        url_2 = url_parse_2[0].split(b':')  # split for a port, if any
+        webserver = url_2[0]
+        if len(url_2)==1:   # if len = 1, no port was specified
             port = 80
-            webserver = temp[:webserver_pos]
         else:
-            #port is specified
-            port = int((temp[(port_pos+1):])[:webserver_pos-port_pos-1])
-            webserver = temp[:port_pos]
-        print("proxy_srvr call")
-        proxy_srvr(webserver, port, conn, addr, data)
-    except Exception:
-        pass
+            port = url_2[1]
+        port = 80
 
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((webserver, port))
+            s.send(data)
 
+            while 1:
+                temp = s.recv(buffer_size)
 
-def proxy_srvr(webserver, port, conn, data, addr):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(webserver, port)
-        s.send(data)
-
-        while 1:    # read reply or data from end web server
-            reply = s.recv(buffer_size)
-
-            if (len(reply) > 0):
-                conn.send(reply)    # send reply back to client
-                # custom message to server
-                dar = float(len(reply))
-                dar = float(dar / 1024)
-                dar = "%.3s" % (str(dar))
-                dar = "%s KB" % (dar)
-                print("[*] Request done: %s => %s <=" % (str(addr[0]),str(dar)))
-            else:
-                # Break connection if receiving data fails
-                break
-            # close server sockets
+                if (len(temp) > 0):
+                    conn.send(temp)
+                else:
+                    break
             s.close()
-            # close client sockets
             conn.close()
-    except socket.error:
-        s.close()
-        conn.close()
-        sys.exit(1)
+        except socket.error:
+            if s:
+                s.close()
+            if conn:
+                conn.close()
+            print("Peer Reset")
+            exit(1)
+       # proxy_srvr(webserver, port, conn, addr, data)
+    except Exception:
+        exit(1)
 
-start()
+
+start()                            

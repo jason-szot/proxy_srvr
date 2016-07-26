@@ -9,7 +9,7 @@ if len(sys.argv) <= 1:
 tcpSerSock = socket(AF_INET, SOCK_STREAM)
 # Fill in start
 tcpSerSock.bind((sys.argv[1],4390))
-tcpSerSock.listen(0)
+tcpSerSock.listen(1)
 # Fill in end.
 while 1:
   # Start receiving data from the client
@@ -36,7 +36,8 @@ while 1:
     tcpCliSock.send("HTTP/1.0 200 OK\r\n")
     tcpCliSock.send("Content-Type:text/html\r\n")
     # Fill in start.
-    tcpCliSock.send(outputdata)
+    for i in range(0, len(outputdata)):
+      tcpCliSock.send(outputdata[i])
     # Fill in end.
     print 'Read from cache'
   # Error handling for file not found in cache
@@ -51,21 +52,23 @@ while 1:
       try:
         # Connect to the socket to port 80
         # Fill in start.
-        c.connect('',80)
+        c.connect((gethostbyname(hostn), 80))
         # Fill in end.
         # Create a temporary file on this socket and ask port 80 for the file requested by the client
         fileobj = c.makefile('r', 0)
-        fileobj.write("GET "+"http://" + filename + "HTTP/1.0\n\n")
+        fileobj.write("GET " + "http://" + filename + " HTTP/1.0\n\n")
         # Read the response into buffer
         # Fill in start.
-        buffer = c.recv(4096)
+        buffer1 = fileobj.readlines()
+        print 'buffer d'
         # Fill in end.
         # Create a new file in the cache for the requested file.
         # Also send the response in the buffer to client socket and the corresponding file in the cache
         tmpFile = open("./" + filename,"wb")
         # Fill in start.
-        tcpCliSock.send(buffer)
-        tmpFile.write(buffer)
+        for i in range(0, len(buffer1)):
+          tcpCliSock.send(buffer1[i])
+          tmpFile.write(buffer1[i])
         # Fill in end.
       except:
         print "Illegal request"
@@ -78,5 +81,5 @@ while 1:
   # Close the client and the server sockets
   tcpCliSock.close()
 # Fill in start.
-c.close()
+tcpSerSock.close()
 # Fill in end.
