@@ -9,7 +9,7 @@ except KeyboardInterrupt:  # to handle ctrl-c request to exit
     print(" [*] Application Exiting ...")
     sys.exit()
 
-max_conn = 5  # max connection queues to hold
+max_conn = 5  # max connection queues to hold - 5 seems to work the best
 buffer_size = 4096  # max socket buffer size
 
 
@@ -56,6 +56,7 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
         url_parse_2 = url_1.split(b'/')     # split off the trailing /
         url_2 = url_parse_2[0].split(b':')  # split for a port, if any
         webserver = url_2[0]
+        print("Received request for %s" % data)
         if len(url_2)==1:   # if len = 1, no port was specified
             port = 80
         else:
@@ -76,6 +77,7 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
                     break
             s.close()
             conn.close()
+            print("Handled request for %s from %s" % (webserver, addr[0]))
         except socket.error:
             if s:
                 s.close()
@@ -83,9 +85,8 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
                 conn.close()
             print("Peer Reset")
             exit(1)
-       # proxy_srvr(webserver, port, conn, addr, data)
     except Exception:
         exit(1)
 
 
-start()                            
+start()
