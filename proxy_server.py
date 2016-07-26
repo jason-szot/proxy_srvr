@@ -56,35 +56,48 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
         url_parse_2 = url_1.split(b'/')     # split off the trailing /
         url_2 = url_parse_2[0].split(b':')  # split for a port, if any
         webserver = url_2[0]
-        print("Received request for %s" % data)
+        print("Received request for %s" % url_1)
         if len(url_2)==1:   # if len = 1, no port was specified
             port = 80
         else:
             port = url_2[1]
         port = 80
 
+        #       check if file is in cache
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((webserver, port))
-            s.send(data)
-
-            while 1:
-                temp = s.recv(buffer_size)
-
-                if (len(temp) > 0):
-                    conn.send(temp)
-                else:
-                    break
-            s.close()
+            cache_file = open("./cache/" + url_1.replace("/","_"), "r")
+            print("Cache hit")
+            outputdata = cache_file.readlines()
+            for i in (0, len(outputdata)):
+                conn.send(outputdata[i])
             conn.close()
-            print("Handled request for %s from %s" % (webserver, addr[0]))
-        except socket.error:
-            if s:
+        except IOError: # not in cache
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.connect((webserver, port))
+                s.send(data)
+
+                while 1:
+                    temp = s.recv(buffer_size)
+                    print("open file")
+                    cache_file = open("./cache/" + url_1.replace("/", "_"), "wb")
+                    print("Cache write")
+                    cache_file.write(temp)
+                    if (len(temp) > 0):
+                        conn.send(temp)
+
+                    else:
+                        break
                 s.close()
-            if conn:
                 conn.close()
-            print("Peer Reset")
-            exit(1)
+                print("Handled request for %s from %s" % (webserver, addr[0]))
+            except socket.error:
+                if s:
+                    s.close()
+                if conn:
+                    conn.close()
+                print("Peer Reset")
+                exit(1)
     except Exception:
         exit(1)
 
