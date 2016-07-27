@@ -22,18 +22,30 @@ def start():
         print("[*] Sockets binding Successfully ...")
         print("[*] Server Started Successfully [ %d ]\n" % listening_port)
     except Exception:
-
         print("[*] Unable to Initialize Socket")
         sys.exit(2)
-
     while 1:
         try:
             conn, addr = s.accept()  # Accept connection from client
             data = conn.recv(buffer_size)  # Receive client data
-            t = threading.Thread(target=conn_string, args=(conn, data, addr))
-            t.daemon = True
-            t._daemonic = True
-            t.start()
+            if data=="":
+                print("Error: expected data from client, none received; connection closed.")
+            else:
+                data_parsed = data.splitlines()
+                first_line = data_parsed[0]
+                line_split = first_line.split()
+                method = line_split[0]
+                if method=="GET":
+                    t = threading.Thread(target=get_string, args=(conn, data, addr))
+                    t.daemon = True
+                    t._daemonic = True
+                    t.start()
+                elif method=="POST":
+                        # print("POST not currently supported")
+                        t = threading.Thread(target=post_string, args=(conn, data, addr))
+                        t.daemon = True
+                        t._daemonic = True
+                        t.start()
         except KeyboardInterrupt:
             s.close()
             print("\n[*] Proxy Server Shutting Down ...")
@@ -43,13 +55,12 @@ def start():
     s.close()
 
 
-def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
+def get_string(conn, data, addr):  # Client Browser Requests Appear Here
     try:
         data_parsed = data.splitlines()
         first_line = data_parsed[0]
         line_split = first_line.split()
         url = line_split[1]
-
         ###################     Parse TCP packet to scrape url and port for opening a socket    ########
         url_parse_1 = url.split(b'://')  # get rid of leading part
         url_1 = url_parse_1[1]             # assign webserver section
@@ -61,8 +72,6 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
             port = 80
         else:
             port = url_2[1]
-        port = 80
-
         #       check if file is in cache
         try:
             cache_file = open("./cache/" + url_1.replace("/","_"), "r")
@@ -76,21 +85,18 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((webserver, port))
                 s.send(data)
-
                 while 1:
                     temp = s.recv(buffer_size)
-                    print("open file")
                     cache_file = open("./cache/" + url_1.replace("/", "_"), "wb")
-                    print("Cache write")
+                    print("Cache miss")
                     cache_file.write(temp)
                     if (len(temp) > 0):
                         conn.send(temp)
-
                     else:
                         break
                 s.close()
                 conn.close()
-                print("Handled request for %s from %s" % (webserver, addr[0]))
+                print("Handled GET request for %s from %s" % (webserver, addr[0]))
             except socket.error:
                 if s:
                     s.close()
@@ -101,5 +107,32 @@ def conn_string(conn, data, addr):  # Client Browser Requests Appear Here
     except Exception:
         exit(1)
 
+
+def post_string(conn, data, addr):
+    print("POST entered")
+    data_parsed = data.splitlines()
+    first_line = data_parsed[0]
+    line_split = first_line.split()
+    url = line_split[1]
+    ###################     Parse TCP packet to scrape url and port for opening a socket    ########
+    url_parse_1 = url.split(b'://')  # get rid of leading part
+    url_1 = url_parse_1[1]  # assign webserver section
+    url_parse_2 = url_1.split(b'/')  # split off the trailing /
+    url_2 = url_parse_2[0].split(b':')  # split for a port, if any
+    webserver = url_2[0]
+    if len(url_2) == 1:  # if len = 1, no port was specified
+        port = 80
+    else:
+        port = url_2[1]
+    print("Creating socket")
+    out_stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    out_stream.connect((webserver, port))
+    print("Socket connected to %s" % webserver)
+    out_stream.send(data)
+    conn.send(out_stream.recv(buffer_size))
+    conn.close()
+    out_stream.close()
+    print("POST handled for %s from %s" % (webserver, addr[0]))
+    exit(1)
 
 start()
